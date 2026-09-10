@@ -34,6 +34,7 @@ COMPOSE_DIR = Path("deployment/compose")
 COMPOSE_PATH = Path("deployment/compose/docker-compose.yml")
 GITLAB_REGISTRY_ENV_NAME = "OPENADS_GITLAB_REGISTRY"
 STANDARD_LAUNCH_ARGUMENT_NAMES = ("namespace", "name", "log_level", "use_sim_time", "params")
+HOST_EXPOSED_ENV_NAMES = frozenset({"LOG_LEVEL", "USE_SIM_TIME", "ROS_TRACING"})
 
 
 @dataclass(frozen=True)
@@ -62,6 +63,7 @@ class PackageMetadata:
 class EnvironmentVariable:
     name: str
     value: str
+    host_exposed: bool = False
 
 
 @dataclass(frozen=True)
@@ -536,7 +538,11 @@ def extra_launch_environment_variables(launch_data: LaunchData) -> list[Environm
     arguments = sorted_launch_arguments(launch_data)
     handled_names = {*STANDARD_LAUNCH_ARGUMENT_NAMES, *launch_data.remappable_topic_names}
     return [
-        EnvironmentVariable(name=env_name(argument.name), value=argument.default_value)
+        EnvironmentVariable(
+            name=env_name(argument.name),
+            value=argument.default_value,
+            host_exposed=env_name(argument.name) in HOST_EXPOSED_ENV_NAMES,
+        )
         for argument in arguments.values()
         if argument.name not in handled_names
     ]
